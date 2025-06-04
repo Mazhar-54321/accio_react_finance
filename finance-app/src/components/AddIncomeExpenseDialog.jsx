@@ -1,4 +1,3 @@
-// src/components/AddIncomeDialog.jsx
 import React, { useEffect, useState } from "react";
 import {
   Dialog,
@@ -10,89 +9,80 @@ import {
   MenuItem,
 } from "@mui/material";
 
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../config/firebase";
-import { auth } from "../config/firebase";
-import { getDocs, query, orderBy } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+import { db, auth } from "../config/firebase";
 
 const AddIncomeExpenseDialog = ({ open, onClose, type, categories }) => {
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [note, setNote] = useState("");
-  const [state, setState] = useState({});
+  const [date, setDate] = useState("");
+  const [errors, setErrors] = useState({
+    amount: "",
+    category: "",
+    note: "",
+    date: "",
+  });
 
-  const addTransaction = async ({ type, amount, category, note }) => {
-    try {
-      const user = auth.currentUser;
-      if (!user) throw new Error("Not logged in");
-
-      const docRef = await addDoc(
-        collection(db, "users", user.uid, "transactions"),
-        {
-          type,
-          amount: Number(amount),
-          category,
-          note,
-          timestamp: serverTimestamp(),
-        }
-      );
-
-      console.log("Transaction added with ID:", docRef.id);
-    } catch (error) {
-      console.error("Error adding transaction:", error.message);
+  useEffect(() => {
+    if (open) {
+      setAmount("");
+      setCategory("");
+      setNote("");
+      setDate("");
+      setErrors({ amount: "", category: "", note: "", date: "" });
     }
-  };
-  const handleSubmit = async () => {
-    if (!amount || Number.isNaN(amount)) return;
-    await addTransaction({
-      type: type,
-      amount,
+  }, [open]);
+
+  const addTransaction = async ({ type, amount, category, note, date }) => {
+    const user = auth.currentUser;
+    if (!user) throw new Error("Not logged in");
+
+    await addDoc(collection(db, "users", user.uid, "transactions"), {
+      type,
+      amount: Number(amount),
       category,
       note,
+      timestamp: date ? new Date(date) : serverTimestamp(),
     });
-    setAmount("");
-    setCategory("");
-    setNote("");
-    onClose(type, true);
   };
-  useEffect(() => {
-    fetchTransactions();
-  }, []);
-  const fetchTransactions = async () => {
-    const user = auth.currentUser;
-    if (!user) {
-      throw new Error("User not authenticated");
+
+  const handleSubmit = async () => {
+    const newErrors = { amount: "", category: "", note: "", date: "" };
+
+    if (!amount || isNaN(Number(amount))) {
+      newErrors.amount = "Amount must be a valid number";
+    }
+    if (!category) {
+      newErrors.category = "Please select a category";
+    }
+    if (!note.trim()) {
+      newErrors.note = "Note cannot be empty";
+    }
+    if (!date) {
+      newErrors.date = "Please select a date";
     }
 
-    const transactionsRef = collection(db, "users", user.uid, "transactions");
-    const q = query(transactionsRef, orderBy("timestamp", "desc"));
-    const snapshot = await getDocs(q);
-
-    const transactions = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-    let totalIncome = 0,
-      totalExpense = 0;
-    for (let i = 0; i < transactions.length; i++) {
-      if (transactions[i].type === "income") {
-        totalIncome += transactions[i].amount;
-      } else {
-        totalExpense += transactions[i].amount;
-      }
+    if (newErrors.amount || newErrors.category || newErrors.note || newErrors.date) {
+      setErrors(newErrors);
+      return;
     }
-    setState((prev) => ({
-      ...prev,
-      totalIncome: totalIncome,
-      totalExpense: totalExpense,
-    }));
-    return transactions;
+
+    try {
+      await addTransaction({ type, amount, category, note, date });
+      onClose(type, true);
+    } catch (err) {
+      console.error("Error adding transaction:", err.message);
+    }
   };
+
   return (
     <Dialog open={open} onClose={() => onClose(type, false)}>
-      <DialogTitle>
-        {type === "income" ? "Add Income" : "Add Expense"}
-      </DialogTitle>
+      <DialogTitle>{type === "income" ? "Add Income" : "Add Expense"}</DialogTitle>
       <DialogContent>
         <TextField
           fullWidth
@@ -100,7 +90,14 @@ const AddIncomeExpenseDialog = ({ open, onClose, type, categories }) => {
           type="text"
           margin="normal"
           value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          onChange={(e) => {
+            setAmount(e.target.value);
+            if (errors.amount && e.target.value && !isNaN(Number(e.target.value))) {
+              setErrors((prev) => ({ ...prev, amount: "" }));
+            }
+          }}
+          error={!!errors.amount}
+          helperText={errors.amount}
         />
         <TextField
           fullWidth
@@ -108,7 +105,14 @@ const AddIncomeExpenseDialog = ({ open, onClose, type, categories }) => {
           label="Category"
           margin="normal"
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
+          onChange={(e) => {
+            setCategory(e.target.value);
+            if (errors.category && e.target.value) {
+              setErrors((prev) => ({ ...prev, category: "" }));
+            }
+          }}
+          error={!!errors.category}
+          helperText={errors.category}
         >
           {categories?.map((cat) => (
             <MenuItem key={cat} value={cat}>
@@ -121,7 +125,30 @@ const AddIncomeExpenseDialog = ({ open, onClose, type, categories }) => {
           label="Note"
           margin="normal"
           value={note}
-          onChange={(e) => setNote(e.target.value)}
+          onChange={(e) => {
+            setNote(e.target.value);
+            if (errors.note && e.target.value.trim()) {
+              setErrors((prev) => ({ ...prev, note: "" }));
+            }
+          }}
+          error={!!errors.note}
+          helperText={errors.note}
+        />
+        <TextField
+          fullWidth
+          label="Date"
+          type="date"
+          margin="normal"
+          value={date}
+          onChange={(e) => {
+            setDate(e.target.value);
+            if (errors.date && e.target.value) {
+              setErrors((prev) => ({ ...prev, date: "" }));
+            }
+          }}
+          InputLabelProps={{ shrink: true }}
+          error={!!errors.date}
+          helperText={errors.date}
         />
       </DialogContent>
       <DialogActions>

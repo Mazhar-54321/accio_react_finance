@@ -3,7 +3,7 @@ import { auth, googleProvider } from "../config/firebase";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithPopup
+  signInWithPopup,
 } from "firebase/auth";
 import {
   Container,
@@ -12,7 +12,7 @@ import {
   Typography,
   Link,
   Stack,
-  Alert
+  Alert,
 } from "@mui/material";
 
 const AuthForm = () => {
@@ -60,8 +60,16 @@ const AuthForm = () => {
         {isLogin ? "Login" : "Sign Up"}
       </Typography>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {success}
+        </Alert>
+      )}
 
       <TextField
         label="Email"
@@ -69,7 +77,7 @@ const AuthForm = () => {
         fullWidth
         margin="normal"
         value={email}
-        onChange={e => setEmail(e.target.value)}
+        onChange={(e) => setEmail(e.target.value)}
       />
 
       <TextField
@@ -78,7 +86,7 @@ const AuthForm = () => {
         fullWidth
         margin="normal"
         value={password}
-        onChange={e => setPassword(e.target.value)}
+        onChange={(e) => setPassword(e.target.value)}
       />
 
       <Stack spacing={2} sx={{ mt: 2 }}>
@@ -94,7 +102,7 @@ const AuthForm = () => {
           {isLogin ? "Don't have an account? " : "Already have an account? "}
           <Link
             href="#"
-            onClick={e => {
+            onClick={(e) => {
               e.preventDefault();
               setIsLogin(!isLogin);
               clearMessages();
