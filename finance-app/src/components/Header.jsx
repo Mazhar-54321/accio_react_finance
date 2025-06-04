@@ -39,7 +39,6 @@ function Header({ user }) {
   };
 
   const handleCloseNavMenu = (page) => {
-    console.log(page)
     setAnchorElNav(null);
   };
 
