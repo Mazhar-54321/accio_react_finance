@@ -93,7 +93,6 @@ const AddIncomeExpenseDialog = ({
     }
 
     try {
-      console.log(format(date,"dd-MM-yyyy"))
       if(isEdit){
         const docRef = doc(db, "users", auth.currentUser.uid, "transactions", data.id);
         await updateDoc(docRef, {type, amount, category, note, date:format(date,"dd-MM-yyyy") });

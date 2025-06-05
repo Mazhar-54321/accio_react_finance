@@ -123,11 +123,9 @@ const Dashboard = () => {
         setState((prev) => ({ ...prev, loading: false }));
       });
     } catch (error) {
-      console.error("Delete failed:", error.message);
     }
   };
   const handleEdit = async (row) => {
-    console.log("row----", row);
     setShowIncomeDialog({
       categories: row?.type === "income" ? incomeCategories : expenseCategories,
       type: row?.type,
@@ -155,7 +153,6 @@ const Dashboard = () => {
         setState((prev) => ({ ...prev, loading: false }));
       })
     } catch (err) {
-      console.error("❌ Error uploading to Firestore:", err.message);
     } finally {
 
       setState((prev) => ({ ...prev, loading: false }));

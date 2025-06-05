@@ -9,7 +9,6 @@ import Dashboard from './Dashboard';
 const FinanceManagement = () => {
   const {loading,user} = useAuth();  
   useEffect(()=>{
-   console.log(user,"userrrrr")
   },[user])
   return (
     <div>
