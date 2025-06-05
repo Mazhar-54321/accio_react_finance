@@ -29,8 +29,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import IconButton from "@mui/material/IconButton";
 import { useTheme } from "@mui/material/styles";
 import Papa from "papaparse";
-import { format } from 'date-fns';
-
+import { format, isValid, parse, parseISO } from "date-fns";
 
 const headCells = [
   { id: "type", label: "Type" },
@@ -41,9 +40,6 @@ const headCells = [
   { id: "action", label: "Action" },
 ];
 const descendingComparator = (a, b, orderBy) => {
-  if (orderBy === "timestamp") {
-    return b[orderBy]?.toDate() - a[orderBy]?.toDate();
-  }
   if (b[orderBy] < a[orderBy]) return -1;
   if (b[orderBy] > a[orderBy]) return 1;
   return 0;
@@ -65,8 +61,12 @@ const stableSort = (array, comparator) => {
   return stabilized.map((el) => el[0]);
 };
 
-const TransactionTable = ({ transactions = [], onDelete, onEdit }) => {
-    console.log(transactions,"transactions")
+const TransactionTable = ({
+  transactions = [],
+  onDelete,
+  onEdit,
+  uploadCSVDataToDB,
+}) => {
   const [page, setPage] = useState(0);
   const fileInputRef = React.useRef(null);
 
@@ -114,16 +114,14 @@ const TransactionTable = ({ transactions = [], onDelete, onEdit }) => {
     page * rowsPerPage + rowsPerPage
   );
   const exportToCSV = (data, filename = "transactions.csv") => {
-    console.log(data, "kkk");
+    console.log(data, "data---");
     const csv = Papa.unparse(
       data?.map((el) => ({
         Type: el?.type,
         Amount: el?.amount,
         Category: el?.category,
         Name: el?.note,
-        Date: new Date(el?.timestamp?.seconds * 1000)
-          .toISOString()
-          .split("T")[0],
+        Date: el?.timestamp,
       }))
     );
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -143,14 +141,26 @@ const TransactionTable = ({ transactions = [], onDelete, onEdit }) => {
       header: true,
       skipEmptyLines: true,
       complete: function (results) {
-        const parsedData = results.data.map((row) => ({
-          type: row.Type?.toLowerCase(),
-          amount: Number(row.Amount),
-          category: row.Category,
-          note: row.Name,
-          timestamp: row.Date,
-        }));
-        console.log("Imported data:", parsedData);
+        const parsedData = results.data.map((row) => {
+            const parsedDate = parse(row.Date, "dd/MM/yyyy", new Date());
+          return {
+            type: row.Type?.toLowerCase(),
+            amount: Number(row.Amount),
+            category: row.Category,
+            note: row.Name,
+            timestamp: isValid(parsedDate) ? format(row.Date,"dd-MM-yyyy") : null,
+          };
+        });
+        const validData = parsedData.filter(
+          (item) =>
+            (item.type === "income" || item.type === "expense") &&
+            !isNaN(item.amount) &&
+            item.amount > 0 &&
+            item.category?.trim() &&
+            item.note?.trim()&&
+            item.timestamp 
+        );
+        uploadCSVDataToDB(validData);
       },
       error: (error) => {
         console.error("Error parsing CSV:", error);
@@ -202,13 +212,23 @@ const TransactionTable = ({ transactions = [], onDelete, onEdit }) => {
           Export to CSV
         </Button>
 
-        <Button variant="contained" onClick={() => fileInputRef.current.click()}>Import from CSV</Button>
+        <Button
+          variant="contained"
+          onClick={() => fileInputRef.current.click()}
+        >
+          Import from CSV
+        </Button>
         <input
           type="file"
           accept=".csv"
           ref={fileInputRef}
           style={{ display: "none" }}
-          onChange={(e) => handleCSVImport(e.target.files[0])}
+          onChange={(e) => {
+            handleCSVImport(e.target.files[0]);
+            setTimeout(() => {
+              e.target.value = "";
+            }, 0);
+          }}
         />
       </Box>
       <TableContainer>
@@ -242,10 +262,7 @@ const TransactionTable = ({ transactions = [], onDelete, onEdit }) => {
                 <TableCell>₹{row.amount}</TableCell>
                 <TableCell>{row.category}</TableCell>
                 <TableCell>{row.note}</TableCell>
-                <TableCell>
-                  {row.timestamp
-                    }
-                </TableCell>
+                <TableCell>{row.timestamp}</TableCell>
                 <TableCell>
                   <IconButton
                     onClick={() => {

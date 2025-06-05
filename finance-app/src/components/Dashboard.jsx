@@ -6,18 +6,16 @@ import CardContent from "@mui/material/CardContent";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import AddIncomeExpenseDialog from "./AddIncomeExpenseDialog";
-
 import { getDocs, query, orderBy } from "firebase/firestore";
-
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { doc, deleteDoc } from 'firebase/firestore';
-import { db, auth } from '../config/firebase';
+import { doc, deleteDoc } from "firebase/firestore";
+import { db, auth } from "../config/firebase";
 
-import { CircularProgress, Paper } from "@mui/material";
+import { Alert, CircularProgress, Paper, Snackbar } from "@mui/material";
 import AddIncomeLineChart from "./AddIncomeLineChart";
 import ExpensePieChart from "./ExpensePieChart";
 import TransactionTable from "./TransactionTable";
-
+import { parseISO, isValid } from "date-fns";
 const cardsContent = [
   {
     title: "Current Balance",
@@ -40,7 +38,8 @@ const Dashboard = () => {
     type: "income",
     categories: incomeCategories,
   });
-
+  const [open,setIsopen]=useState(true);
+  const [snackbar,setSnackbar]=useState({})
   const buttonClickHandler = (type) => {
     switch (type) {
       case "Add Income":
@@ -84,7 +83,7 @@ const Dashboard = () => {
     }));
     let totalIncome = 0,
       totalExpense = 0;
-      
+
     for (let i = 0; i < transactions.length; i++) {
       if (transactions[i].type === "income") {
         totalIncome += Number(transactions[i].amount);
@@ -119,29 +118,58 @@ const Dashboard = () => {
       if (!user) throw new Error("Not authenticated");
       const docRef = doc(db, "users", user.uid, "transactions", id);
       await deleteDoc(docRef);
-      setState((prev)=>({...prev,loading:true}))
-      fetchTransactions().finally(()=>{
-        setState((prev)=>({...prev,loading:false}))
-      })
+      setState((prev) => ({ ...prev, loading: true }));
+      fetchTransactions().finally(() => {
+        setState((prev) => ({ ...prev, loading: false }));
+      });
     } catch (error) {
       console.error("Delete failed:", error.message);
     }
   };
-  const handleEdit = async(row)=>{
-    console.log('row----',row);
+  const handleEdit = async (row) => {
+    console.log("row----", row);
     setShowIncomeDialog({
-      categories:row?.type==="income"?incomeCategories:expenseCategories,
-      type:row?.type,
-      open:true,
-      isEdit:true,
-      data:row
-    })
-  }
+      categories: row?.type === "income" ? incomeCategories : expenseCategories,
+      type: row?.type,
+      open: true,
+      isEdit: true,
+      data: row,
+    });
+  };
+  const uploadCSVDataToDB = async (transactions) => {  
+    if(!transactions?.length){
+      setSnackbar({message:'Export to CSV for sample file',severity:'error'});
+      setIsopen(true)
+      return;
+    }
+    try {
+      setState((prev) => ({ ...prev, loading: true }));
+      const batchAdd = transactions.map((item) => {
+        return addDoc(collection(db, "users", auth.currentUser.uid, "transactions"), {
+          ...item
+        });
+      });
+  
+      await Promise.all(batchAdd);
+      fetchTransactions().finally(()=>{
+        setState((prev) => ({ ...prev, loading: false }));
+      })
+    } catch (err) {
+      console.error("❌ Error uploading to Firestore:", err.message);
+    } finally {
+
+      setState((prev) => ({ ...prev, loading: false }));
+    }
+  };
+
   
   return (
     <div className="dashboard" style={{ padding: "20px" }}>
       {!state?.loading && (
-        <div className="overview" style={{ display: "flex", justifyContent: "space-between" }}>
+        <div
+          className="overview"
+          style={{ display: "flex", justifyContent: "space-between" }}
+        >
           {cardsContent?.map((el) => (
             <Card className="card" key={el?.title} sx={{ width: "30%" }}>
               <CardContent>
@@ -229,7 +257,25 @@ const Dashboard = () => {
           </Box>
         </Box>
       )}
-      {!state?.loading && Boolean(state?.transactions?.length) && <TransactionTable loading={state?.loading} onEdit={handleEdit} onDelete={handleDelete} transactions={state?.transactions} />}
+      {!state?.loading && Boolean(state?.transactions?.length) && (
+        <TransactionTable
+          loading={state?.loading}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          transactions={state?.transactions}
+          uploadCSVDataToDB={uploadCSVDataToDB}
+        />
+      )}
+      <Snackbar
+        open={open}
+        autoHideDuration={3000}
+        onClose={()=>{setIsopen(false)}}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert onClose={()=>{setIsopen(false)}} severity={snackbar.severity} variant="filled">
+          {snackbar?.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };
