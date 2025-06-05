@@ -38,7 +38,7 @@ const Dashboard = () => {
     type: "income",
     categories: incomeCategories,
   });
-  const [open,setIsopen]=useState(true);
+  const [open,setIsopen]=useState(false);
   const [snackbar,setSnackbar]=useState({})
   const buttonClickHandler = (type) => {
     switch (type) {

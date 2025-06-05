@@ -142,7 +142,8 @@ const TransactionTable = ({
       skipEmptyLines: true,
       complete: function (results) {
         const parsedData = results.data.map((row) => {
-            const parsedDate = parse(row.Date, "dd/MM/yyyy", new Date());
+            const parsedDate = parse(row.Date, "dd-MM-yyyy", new Date());
+            console.log(parsedDate,row.Date)
           return {
             type: row.Type?.toLowerCase(),
             amount: Number(row.Amount),
@@ -151,6 +152,7 @@ const TransactionTable = ({
             timestamp: isValid(parsedDate) ? format(row.Date,"dd-MM-yyyy") : null,
           };
         });
+        console.log(parsedData,"parsedData")
         const validData = parsedData.filter(
           (item) =>
             (item.type === "income" || item.type === "expense") &&
@@ -160,6 +162,7 @@ const TransactionTable = ({
             item.note?.trim()&&
             item.timestamp 
         );
+        console.log(validData,"mmmm")
         uploadCSVDataToDB(validData);
       },
       error: (error) => {
