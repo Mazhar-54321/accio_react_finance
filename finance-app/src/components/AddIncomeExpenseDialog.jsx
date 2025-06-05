@@ -9,14 +9,19 @@ import {
   MenuItem,
 } from "@mui/material";
 
-import {
-  collection,
-  addDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../config/firebase";
+import { updateDoc, doc } from "firebase/firestore";
+import { format } from 'date-fns';
 
-const AddIncomeExpenseDialog = ({ open, onClose, type, categories }) => {
+const AddIncomeExpenseDialog = ({
+  open,
+  onClose,
+  type,
+  categories,
+  isEdit,
+  data,
+}) => {
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [note, setNote] = useState("");
@@ -37,17 +42,26 @@ const AddIncomeExpenseDialog = ({ open, onClose, type, categories }) => {
       setErrors({ amount: "", category: "", note: "", date: "" });
     }
   }, [open]);
+  useEffect(() => {
+    if (isEdit) {
+      setAmount(data?.amount);
+      setCategory(data?.category);
+      setNote(data?.note);
+      const dateObj = new Date(data?.timestamp.seconds * 1000);
+      const isoDate = dateObj.toISOString().split("T")[0];
+      setDate(isoDate);
+    }
+  }, [isEdit]);
 
   const addTransaction = async ({ type, amount, category, note, date }) => {
     const user = auth.currentUser;
     if (!user) throw new Error("Not logged in");
-
     await addDoc(collection(db, "users", user.uid, "transactions"), {
       type,
       amount: Number(amount),
       category,
       note,
-      timestamp: date ? new Date(date) : serverTimestamp(),
+      timestamp: date,
     });
   };
 
@@ -67,13 +81,24 @@ const AddIncomeExpenseDialog = ({ open, onClose, type, categories }) => {
       newErrors.date = "Please select a date";
     }
 
-    if (newErrors.amount || newErrors.category || newErrors.note || newErrors.date) {
+    if (
+      newErrors.amount ||
+      newErrors.category ||
+      newErrors.note ||
+      newErrors.date
+    ) {
       setErrors(newErrors);
       return;
     }
 
     try {
-      await addTransaction({ type, amount, category, note, date });
+      console.log(format(date,"dd-MM-yyyy"))
+      if(isEdit){
+        const docRef = doc(db, "users", auth.currentUser.uid, "transactions", data.id);
+        await updateDoc(docRef, {type, amount, category, note, date:format(date,"dd-MM-yyyy") });
+      }else{
+        await addTransaction({ type, amount, category, note, date:format(date,"dd-MM-yyyy") });
+      }
       onClose(type, true);
     } catch (err) {
       console.error("Error adding transaction:", err.message);
@@ -82,7 +107,15 @@ const AddIncomeExpenseDialog = ({ open, onClose, type, categories }) => {
 
   return (
     <Dialog open={open} onClose={() => onClose(type, false)}>
-      <DialogTitle>{type === "income" ? "Add Income" : "Add Expense"}</DialogTitle>
+      <DialogTitle>
+        {type === "income"
+          ? isEdit
+            ? "Edit Income"
+            : "Add Income"
+          : isEdit
+          ? "Edit Expense"
+          : "Add Expense"}
+      </DialogTitle>
       <DialogContent>
         <TextField
           fullWidth
@@ -92,7 +125,11 @@ const AddIncomeExpenseDialog = ({ open, onClose, type, categories }) => {
           value={amount}
           onChange={(e) => {
             setAmount(e.target.value);
-            if (errors.amount && e.target.value && !isNaN(Number(e.target.value))) {
+            if (
+              errors.amount &&
+              e.target.value &&
+              !isNaN(Number(e.target.value))
+            ) {
               setErrors((prev) => ({ ...prev, amount: "" }));
             }
           }}
@@ -138,6 +175,7 @@ const AddIncomeExpenseDialog = ({ open, onClose, type, categories }) => {
           fullWidth
           label="Date"
           type="date"
+          
           margin="normal"
           value={date}
           onChange={(e) => {
@@ -154,7 +192,13 @@ const AddIncomeExpenseDialog = ({ open, onClose, type, categories }) => {
       <DialogActions>
         <Button onClick={() => onClose(type, false)}>Cancel</Button>
         <Button variant="contained" onClick={handleSubmit}>
-          {type === "income" ? "Add Income" : "Add Expense"}
+          {type === "income"
+            ? isEdit
+              ? "Update Income"
+              : "Add Income"
+            : isEdit
+            ? "Update Expense"
+            : "Add Expense"}
         </Button>
       </DialogActions>
     </Dialog>

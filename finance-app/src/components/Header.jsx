@@ -39,6 +39,7 @@ function Header({ user }) {
   };
 
   const handleCloseNavMenu = (page) => {
+    console.log(page)
     setAnchorElNav(null);
   };
 
@@ -50,7 +51,7 @@ function Header({ user }) {
     <AppBar position="static">
       <Container maxWidth="xl">
         <Toolbar disableGutters>
-          <AdbIcon  />
+          <AdbIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1 }} />
           <Typography
             variant="h6"
             noWrap
@@ -58,7 +59,7 @@ function Header({ user }) {
             href="#app-bar-with-responsive-menu"
             sx={{
               mr: 2,
-              display: { md: 'flex' },
+              display: { xs: 'none', md: 'flex' },
               fontFamily: 'monospace',
               fontWeight: 700,
               letterSpacing: '.1rem',
@@ -69,7 +70,7 @@ function Header({ user }) {
             Financely
           </Typography>
 
-          {/* <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
+          <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
             <IconButton
               size="large"
               aria-label="account of current user"
@@ -102,8 +103,8 @@ function Header({ user }) {
                 </MenuItem>
               ))}
             </Menu>
-          </Box> */}
-          {/* <AdbIcon sx={{ display: { xs: 'flex', md: 'none' }, mr: 1 }} /> */}
+          </Box>
+          <AdbIcon sx={{ display: { xs: 'flex', md: 'none' }, mr: 1 }} />
           {/* <Typography
             variant="h5"
             noWrap
@@ -122,9 +123,9 @@ function Header({ user }) {
           >
             LOGO
           </Typography> */}
-          {/* <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
+          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
 
-          </Box> */}
+          </Box>
           {user && <Box sx={{ flexGrow: 0, color: 'white' }}>
             <Button onClick={handleLogout} variant="outlined" style={{color:'white',textTransform:'none'}} startIcon={<DeleteIcon />}>
               Logout

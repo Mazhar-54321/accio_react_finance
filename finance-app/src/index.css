@@ -1,6 +1,9 @@
 *{
   margin: 0px;
-  font-family: 'Times New Roman', Times, serif !important;
+  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif !important;
+}
+button{
+  text-transform: none !important;
 }
 @media (max-width:600px) {
   .overview{

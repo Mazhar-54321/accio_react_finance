@@ -7,15 +7,17 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import AddIncomeExpenseDialog from "./AddIncomeExpenseDialog";
 
-import { auth } from "../config/firebase";
 import { getDocs, query, orderBy } from "firebase/firestore";
 
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../config/firebase";
+import { doc, deleteDoc } from 'firebase/firestore';
+import { db, auth } from '../config/firebase';
+
 import { CircularProgress, Paper } from "@mui/material";
 import AddIncomeLineChart from "./AddIncomeLineChart";
 import ExpensePieChart from "./ExpensePieChart";
 import TransactionTable from "./TransactionTable";
+
 const cardsContent = [
   {
     title: "Current Balance",
@@ -82,11 +84,12 @@ const Dashboard = () => {
     }));
     let totalIncome = 0,
       totalExpense = 0;
+      
     for (let i = 0; i < transactions.length; i++) {
       if (transactions[i].type === "income") {
-        totalIncome += transactions[i].amount;
+        totalIncome += Number(transactions[i].amount);
       } else {
-        totalExpense += transactions[i].amount;
+        totalExpense += Number(transactions[i].amount);
       }
     }
     setState((prev) => ({
@@ -110,6 +113,31 @@ const Dashboard = () => {
       open: false,
     });
   };
+  const handleDelete = async (id) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("Not authenticated");
+      const docRef = doc(db, "users", user.uid, "transactions", id);
+      await deleteDoc(docRef);
+      setState((prev)=>({...prev,loading:true}))
+      fetchTransactions().finally(()=>{
+        setState((prev)=>({...prev,loading:false}))
+      })
+    } catch (error) {
+      console.error("Delete failed:", error.message);
+    }
+  };
+  const handleEdit = async(row)=>{
+    console.log('row----',row);
+    setShowIncomeDialog({
+      categories:row?.type==="income"?incomeCategories:expenseCategories,
+      type:row?.type,
+      open:true,
+      isEdit:true,
+      data:row
+    })
+  }
+  
   return (
     <div className="dashboard" style={{ padding: "20px" }}>
       {!state?.loading && (
@@ -156,6 +184,8 @@ const Dashboard = () => {
           type={showIncomeDialog?.type}
           onClose={(type, action) => onDialogCloseHandler(type, action)}
           open={showIncomeDialog?.open}
+          isEdit={showIncomeDialog?.isEdit}
+          data={showIncomeDialog?.data}
         />
       }
 
@@ -199,7 +229,7 @@ const Dashboard = () => {
           </Box>
         </Box>
       )}
-      {!state?.loading && Boolean(state?.transactions?.length) && <TransactionTable transactions={state?.transactions} />}
+      {!state?.loading && Boolean(state?.transactions?.length) && <TransactionTable loading={state?.loading} onEdit={handleEdit} onDelete={handleDelete} transactions={state?.transactions} />}
     </div>
   );
 };

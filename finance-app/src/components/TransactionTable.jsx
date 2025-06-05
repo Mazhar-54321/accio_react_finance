@@ -17,10 +17,20 @@ import {
   FormControl,
   Select,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  useMediaQuery,
+  DialogTitle,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import IconButton from "@mui/material/IconButton";
+import { useTheme } from "@mui/material/styles";
+import Papa from "papaparse";
+import { format } from 'date-fns';
+
 
 const headCells = [
   { id: "type", label: "Type" },
@@ -30,7 +40,6 @@ const headCells = [
   { id: "timestamp", label: "Date" },
   { id: "action", label: "Action" },
 ];
-
 const descendingComparator = (a, b, orderBy) => {
   if (orderBy === "timestamp") {
     return b[orderBy]?.toDate() - a[orderBy]?.toDate();
@@ -56,14 +65,20 @@ const stableSort = (array, comparator) => {
   return stabilized.map((el) => el[0]);
 };
 
-const TransactionTable = ({ transactions = [] }) => {
+const TransactionTable = ({ transactions = [], onDelete, onEdit }) => {
+    console.log(transactions,"transactions")
   const [page, setPage] = useState(0);
+  const fileInputRef = React.useRef(null);
+
   const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [order, setOrder] = useState("desc");
+  const [order, setOrder] = useState("asc");
   const [orderBy, setOrderBy] = useState("timestamp");
   const [type, setType] = React.useState("all");
   const [inputText, setInputText] = useState("");
-
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selecetdRow, setSelectedRow] = useState({});
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down("md"));
   const handleChange = (event) => {
     setType(event.target.value);
   };
@@ -98,12 +113,51 @@ const TransactionTable = ({ transactions = [] }) => {
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
-  const handleEdit = ()=>{
+  const exportToCSV = (data, filename = "transactions.csv") => {
+    console.log(data, "kkk");
+    const csv = Papa.unparse(
+      data?.map((el) => ({
+        Type: el?.type,
+        Amount: el?.amount,
+        Category: el?.category,
+        Name: el?.note,
+        Date: new Date(el?.timestamp?.seconds * 1000)
+          .toISOString()
+          .split("T")[0],
+      }))
+    );
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
 
-  }
-  const handleDelete = ()=>{
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  const handleCSVImport = (file) => {
+    if (!file) return;
 
-  }
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: function (results) {
+        const parsedData = results.data.map((row) => ({
+          type: row.Type?.toLowerCase(),
+          amount: Number(row.Amount),
+          category: row.Category,
+          note: row.Name,
+          timestamp: row.Date,
+        }));
+        console.log("Imported data:", parsedData);
+      },
+      error: (error) => {
+        console.error("Error parsing CSV:", error);
+      },
+    });
+  };
+
   return (
     <Paper sx={{ mt: 4 }}>
       <Typography variant="h6" sx={{ p: 2 }}>
@@ -144,9 +198,18 @@ const TransactionTable = ({ transactions = [] }) => {
           </Select>
         </FormControl>
 
-        <Button variant="outlined">Export to CSV</Button>
+        <Button variant="outlined" onClick={() => exportToCSV(transactions)}>
+          Export to CSV
+        </Button>
 
-        <Button variant="contained">Import from CSV</Button>
+        <Button variant="contained" onClick={() => fileInputRef.current.click()}>Import from CSV</Button>
+        <input
+          type="file"
+          accept=".csv"
+          ref={fileInputRef}
+          style={{ display: "none" }}
+          onChange={(e) => handleCSVImport(e.target.files[0])}
+        />
       </Box>
       <TableContainer>
         <Table size="small">
@@ -180,15 +243,23 @@ const TransactionTable = ({ transactions = [] }) => {
                 <TableCell>{row.category}</TableCell>
                 <TableCell>{row.note}</TableCell>
                 <TableCell>
-                  {row.timestamp?.toDate
-                    ? row.timestamp.toDate().toLocaleDateString()
-                    : "-"}
+                  {row.timestamp
+                    }
                 </TableCell>
                 <TableCell>
-                  <IconButton onClick={() => handleEdit(row)}>
+                  <IconButton
+                    onClick={() => {
+                      onEdit(row);
+                    }}
+                  >
                     <EditIcon fontSize="small" />
                   </IconButton>
-                  <IconButton onClick={() => handleDelete(row.id)}>
+                  <IconButton
+                    onClick={() => {
+                      setSelectedRow(row);
+                      setShowDeleteDialog(true);
+                    }}
+                  >
                     <DeleteIcon fontSize="small" color="error" />
                   </IconButton>
                 </TableCell>
@@ -222,6 +293,34 @@ const TransactionTable = ({ transactions = [] }) => {
         onRowsPerPageChange={handleChangeRowsPerPage}
         rowsPerPageOptions={[5, 10, 25]}
       />
+      {showDeleteDialog && (
+        <Dialog
+          fullScreen={fullScreen}
+          open={showDeleteDialog}
+          onClose={() => setShowDeleteDialog(false)}
+          aria-labelledby="delete-dialog-title"
+        >
+          <DialogTitle id="delete-dialog-title">Delete Transaction</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Are you sure you want to permanently delete this transaction? This
+              action cannot be undone.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowDeleteDialog(false)} color="primary">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => onDelete(selecetdRow.id)}
+              color="error"
+              autoFocus
+            >
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </Paper>
   );
 };
