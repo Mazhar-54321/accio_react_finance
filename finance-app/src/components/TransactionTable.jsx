@@ -211,7 +211,14 @@ const TransactionTable = ({
           </Select>
         </FormControl>
 
-        <Button variant="outlined" onClick={() => exportToCSV(transactions)}>
+        <Button variant="outlined" onClick={() => exportToCSV(transactions?.filter(
+            (el) =>
+              el?.note
+                ?.trim()
+                ?.toLowerCase()
+                ?.includes(inputText?.trim()?.toLowerCase()) &&
+              (el?.type === type || type === "all")
+          ))}>
           Export to CSV
         </Button>
 

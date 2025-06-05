@@ -12,7 +12,7 @@ import {
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../config/firebase";
 import { updateDoc, doc } from "firebase/firestore";
-import { format } from 'date-fns';
+import { format,parse } from 'date-fns';
 
 const AddIncomeExpenseDialog = ({
   open,
@@ -47,8 +47,9 @@ const AddIncomeExpenseDialog = ({
       setAmount(data?.amount);
       setCategory(data?.category);
       setNote(data?.note);
-      const dateObj = new Date(data?.timestamp.seconds * 1000);
-      const isoDate = dateObj.toISOString().split("T")[0];
+      const parsedDate = parse(data.timestamp, "dd-MM-yyyy", new Date());
+    const isoDate = format(parsedDate, "yyyy-MM-dd");
+
       setDate(isoDate);
     }
   }, [isEdit]);

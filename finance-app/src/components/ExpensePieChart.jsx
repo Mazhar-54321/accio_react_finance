@@ -36,7 +36,8 @@ const ExpensePieChart = ({ transactions }) => {
 
   return (
     <div style={{ maxWidth: 500, maxHeight:300, margin: "2rem auto" }}>
-      <Pie style={{width:'auto !important'}} data={chartData} />
+      {Boolean(data?.length)? <Pie style={{width:'auto !important'}} data={chartData} />:<div style={{display:'flex',justifyContent:'center',alignItems:'center',width:'100%',height:'300px'}}>
+      <p>No Data to display</p></div>}
     </div>
   );
 };

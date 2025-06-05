@@ -38,7 +38,8 @@ const AddIncomeLineChart = ({ transactions }) => {
 
   return (
     <div style={{ maxWidth: 600,minHeight:300, margin: "2rem auto" }}>
-      <Line data={chartData} />
+      {Boolean(data?.length)?<Line data={chartData} />:<div style={{display:'flex',justifyContent:'center',alignItems:'center',width:'100%',height:'300px'}}>
+        <p>No Data to display</p></div>}
     </div>
   );
 };
