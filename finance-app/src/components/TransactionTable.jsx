@@ -268,7 +268,7 @@ const TransactionTable = ({
                 <TableCell>₹{row.amount}</TableCell>
                 <TableCell>{row.category}</TableCell>
                 <TableCell>{row.note}</TableCell>
-                <TableCell>{row.timestamp}</TableCell>
+                <TableCell>{"---"}</TableCell>
                 <TableCell>
                   <IconButton
                     onClick={() => {
