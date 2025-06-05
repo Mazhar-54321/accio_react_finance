@@ -12,7 +12,7 @@ import {
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../config/firebase";
 import { updateDoc, doc } from "firebase/firestore";
-import { format,parse } from 'date-fns';
+import { format, parse } from "date-fns";
 
 const AddIncomeExpenseDialog = ({
   open,

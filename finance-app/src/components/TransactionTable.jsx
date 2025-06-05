@@ -29,7 +29,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import IconButton from "@mui/material/IconButton";
 import { useTheme } from "@mui/material/styles";
 import Papa from "papaparse";
-import { format, isValid, parse, parseISO } from "date-fns";
+import { format, parse } from "date-fns";
 
 const headCells = [
   { id: "type", label: "Type" },
@@ -268,7 +268,7 @@ const TransactionTable = ({
                 <TableCell>₹{row.amount}</TableCell>
                 <TableCell>{row.category}</TableCell>
                 <TableCell>{row.note}</TableCell>
-                <TableCell>{"---"}</TableCell>
+                <TableCell>{row.timestamp}</TableCell>
                 <TableCell>
                   <IconButton
                     onClick={() => {
